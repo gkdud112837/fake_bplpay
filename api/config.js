@@ -10,6 +10,6 @@ export function GET() {
     sourceName: SOURCE_NAME,
     agent: agentEnabled,
     // 화면의 지역 칩
-    regions: ['반월당', '중앙로', '동성로', '종로'],
+    regions: ['반월당', '중앙로', '동성로', '종로', '교동'],
   });
 }
