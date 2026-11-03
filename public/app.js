@@ -1,7 +1,7 @@
 const CENTER = [35.8685, 128.595];
 const STATUS_TEXT = { yes: '비플페이 가능', no: '비플페이 불가능', none: '미확인' };
-// 구획 밖은 어둡게 덮고, 구획은 선명한 테두리로 강조한다
-const AREA_STYLE = { stroke: '#2563eb', mask: '#1f2937', maskOpacity: 0.45 };
+// 구획 밖만 회색으로 덮어 구획을 강조한다 (테두리 선 없음)
+const AREA_STYLE = { mask: '#4b5563', maskOpacity: 0.45 };
 const state = { places: [], byId: new Map(), markers: new Map(), filter: 'all', area: null, sourceName: '', popupFor: null };
 const $ = (sel) => document.querySelector(sel);
 
@@ -26,7 +26,9 @@ function polygonsLatLng(geojson) {
 // ---------- 지도 어댑터: 카카오 지도 / Leaflet(OSM) 공통 인터페이스 ----------
 
 function leafletMap() {
-  const map = L.map('map').setView(CENTER, 16);
+  // 확대/축소 버튼은 왼쪽 패널과 겹치지 않게 오른쪽에
+  const map = L.map('map', { zoomControl: false }).setView(CENTER, 16);
+  L.control.zoom({ position: 'topright' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors',
@@ -49,10 +51,9 @@ function leafletMap() {
       const mask = L.polygon([world, ...polys.map((rings) => rings[0])], {
         stroke: false, fillColor: AREA_STYLE.mask, fillOpacity: AREA_STYLE.maskOpacity, interactive: false,
       });
-      const outline = L.polygon(polys, { color: AREA_STYLE.stroke, weight: 3, fill: false, interactive: false });
-      areaLayers = [mask.addTo(map), outline.addTo(map)];
+      areaLayers = [mask.addTo(map)];
       // 구획에 맞춰 부드럽게 확대
-      map.flyToBounds(outline.getBounds(), { padding: [24, 24], duration: 0.9 });
+      map.flyToBounds(L.latLngBounds(polys.flatMap((rings) => rings[0])), { padding: [24, 24], duration: 0.9 });
     },
     showPoints(places) {
       clearArea();
@@ -121,10 +122,7 @@ function kakaoMap() {
         path: [korea, ...polys.map((rings) => toPath(rings[0]))],
         strokeWeight: 0, strokeOpacity: 0, fillColor: AREA_STYLE.mask, fillOpacity: AREA_STYLE.maskOpacity,
       });
-      const outlines = polys.map(
-        (rings) => new k.Polyline({ path: toPath(rings[0]), strokeWeight: 3, strokeColor: AREA_STYLE.stroke, strokeOpacity: 0.95 }),
-      );
-      areaShapes = [mask, ...outlines];
+      areaShapes = [mask];
       for (const s of areaShapes) s.setMap(map);
       zoomInto(bounds);
     },
@@ -288,14 +286,18 @@ subscribeRealtime();
 // ---------- 목록 / 검색 ----------
 
 // 종류(식당·카페·기타) 칩 — 아무것도 안 고르면 전체
-const KIND_TEXT = { food: '식당', cafe: '카페', etc: '기타' };
+const KIND_TEXT = { food: '식당', cafe: '카페', bar: '주점', etc: '기타' };
 state.kind = 'all';
 const kindOk = (p) => state.kind === 'all' || (p.kind || 'food') === state.kind;
 const visible = (p) => kindOk(p) && (state.filter === 'all' || (p.status || 'none') === state.filter);
 
 function setFilter(filter) {
   state.filter = filter;
-  document.querySelectorAll('.filters button').forEach((b) => b.classList.toggle('on', b.dataset.filter === filter));
+  const buttons = [...document.querySelectorAll('.filters button')];
+  buttons.forEach((b) => b.classList.toggle('on', b.dataset.filter === filter));
+  // 슬라이딩 필: 선택된 탭 위치로 배경을 옮긴다
+  const i = Math.max(0, buttons.findIndex((b) => b.dataset.filter === filter));
+  $('.filters .pill').style.transform = `translateX(${i * 100}%)`;
 }
 
 function setKind(kind) {
@@ -452,3 +454,10 @@ document.querySelectorAll('#kind-chips button').forEach((btn) => {
     if (state.area) render();
   };
 });
+
+// 주소에 ?q=교동 처럼 붙이면 바로 검색 (링크 공유용)
+const initialQuery = new URLSearchParams(location.search).get('q');
+if (initialQuery) {
+  $('#q').value = initialQuery;
+  search(initialQuery);
+}

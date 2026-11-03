@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>비플페이 맛집 지도</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,6 +23,7 @@
           <div id="kind-chips" class="chips">
             <button type="button" data-kind="food">식당</button>
             <button type="button" data-kind="cafe">카페</button>
+            <button type="button" data-kind="bar">주점</button>
             <button type="button" data-kind="etc">기타</button>
           </div>
         </div>
@@ -33,6 +35,7 @@
         <div id="summary-dongs" class="meta small"></div>
       </div>
       <div class="filters">
+        <span class="pill" aria-hidden="true"></span>
         <button type="button" data-filter="all" class="on">전체</button>
         <button type="button" data-filter="yes">가능</button>
         <button type="button" data-filter="no">불가능</button>
