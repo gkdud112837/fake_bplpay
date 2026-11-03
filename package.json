@@ -1,0 +1,15 @@
+{
+  "name": "fake-bplpay",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "대구 중구 법정동 구획별 식당 지도 + 비플페이 가능 여부 공유",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "index": "node --env-file-if-exists=.env scripts/build-store-index.mjs"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}

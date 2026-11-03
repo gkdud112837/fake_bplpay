@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비플페이 맛집 지도</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <aside id="side">
+      <div class="side-head">
+        <h1>비플페이 맛집 지도 <small>대구 중구</small></h1>
+        <form id="search-form">
+          <input id="q" placeholder="동네·지명·가게 이름 (예: 교동, 성내2동, 스타벅스)" autocomplete="off" autofocus>
+          <button type="submit">검색</button>
+        </form>
+        <div class="chip-row"><span class="chip-label">지역</span><div id="region-chips" class="chips"></div></div>
+        <div class="chip-row">
+          <span class="chip-label">종류</span>
+          <div id="kind-chips" class="chips">
+            <button type="button" data-kind="food">식당</button>
+            <button type="button" data-kind="cafe">카페</button>
+            <button type="button" data-kind="etc">기타</button>
+          </div>
+        </div>
+      </div>
+      <div id="summary">
+        <div id="reply" class="reply" hidden></div>
+        <div id="summary-title" class="area-title"></div>
+        <div id="summary-meta" class="meta"></div>
+        <div id="summary-dongs" class="meta small"></div>
+      </div>
+      <div class="filters">
+        <button type="button" data-filter="all" class="on">전체</button>
+        <button type="button" data-filter="yes">가능</button>
+        <button type="button" data-filter="no">불가능</button>
+        <button type="button" data-filter="none">미확인</button>
+      </div>
+      <ul id="list"></ul>
+    </aside>
+    <div id="map"></div>
+  </main>
+  <div id="toast" hidden></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

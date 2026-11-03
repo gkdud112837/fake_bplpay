@@ -1,0 +1,126 @@
+:root {
+  --bg: #ffffff;
+  --panel: #f7f7f8;
+  --text: #1b1b1f;
+  --muted: #6b6b76;
+  --line: #e3e3e8;
+  --accent: #3b82f6;
+  --neon: #39ff14;
+  --no: #9ca3af;
+  --none: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+main { height: 100%; display: flex; }
+#map { flex: 1; min-height: 0; }
+#side { width: 360px; flex: none; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: var(--panel); min-height: 0; }
+
+.side-head { padding: 16px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.side-head h1 { margin: 0 0 12px; font-size: 18px; }
+.side-head h1 small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+
+#search-form { display: flex; gap: 8px; }
+#q { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+#q:focus { outline: 2px solid var(--accent); border-color: transparent; }
+#search-form button { flex: none; padding: 10px 16px; font-size: 15px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.chips button { flex: none; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); cursor: pointer; }
+.chips button:hover { border-color: var(--accent); color: var(--accent); }
+.chips button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.chip-row .chips { margin-top: 0; }
+.chip-label { flex: none; width: 28px; font-size: 12px; font-weight: 600; color: var(--muted); }
+
+#summary { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.area-title { font-size: 17px; font-weight: 700; }
+.meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.meta.small { font-size: 12px; }
+.reply { margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, var(--bg)); font-size: 13px; line-height: 1.4; }
+
+.filters { display: flex; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+.filters button { flex: 1; padding: 6px 0; font-size: 13px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; cursor: pointer; }
+.filters button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+#list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+#list li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+#list li:hover { background: var(--bg); }
+#list .n { font-size: 14px; font-weight: 600; }
+#list .c { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--none); }
+.dot[data-s="yes"] { background: var(--neon); box-shadow: 0 0 6px var(--neon); }
+.dot[data-s="no"] { background: var(--no); }
+
+/* ---- 지도 핀 ---- */
+.pin-wrap { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.pin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+.pin-none { background: var(--none); }
+.pin-no { background: var(--no); border-color: #e5e7eb; }
+.pin-yes {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 4px solid var(--neon);
+  box-shadow: 0 0 6px 2px var(--neon), 0 0 16px 4px rgba(57, 255, 20, 0.6);
+  animation: glow 1.4s ease-in-out infinite alternate;
+}
+@keyframes glow {
+  from { box-shadow: 0 0 4px 1px var(--neon), 0 0 10px 2px rgba(57, 255, 20, 0.5); }
+  to { box-shadow: 0 0 8px 3px var(--neon), 0 0 20px 6px rgba(57, 255, 20, 0.7); }
+}
+
+/* ---- 팝업 ---- */
+.popup .name { font-size: 15px; display: block; }
+.popup .cat, .popup .addr, .popup .phone { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.popup .status { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #fff3dc; color: #92400e; }
+.popup .status[data-s="yes"] { background: #e8ffe3; color: #166534; box-shadow: 0 0 0 2px var(--neon); }
+.popup .status[data-s="no"] { background: #eceef1; color: #4b5563; }
+.popup .btns { display: flex; gap: 6px; margin-top: 10px; }
+.popup .btns button { flex: 1; padding: 8px 0; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 2px solid transparent; }
+.popup .b-yes { background: #eaffe4; color: #166534; border-color: #b5f5a6; }
+.popup .b-yes.active { background: var(--neon); color: #0b3d02; border-color: var(--neon); }
+.popup .b-no { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+.popup .b-no.active { background: var(--no); color: #fff; border-color: var(--no); }
+.popup .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; }
+.popup .b-reset { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 12px; text-decoration: underline; }
+
+/* 카카오 지도용 팝업 (CustomOverlay) — 지도 위라 다크 모드와 무관하게 밝은 카드로 고정 */
+.kpopup {
+  position: relative;
+  width: 250px;
+  margin-bottom: 18px;
+  padding: 14px 14px 10px;
+  background: #fff;
+  color: #1b1b1f;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --muted: #6b6b76;
+}
+.kpopup::after {
+  content: '';
+  position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
+  border: 8px solid transparent; border-top-color: #fff; border-bottom: 0;
+}
+.kpopup-close { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; color: #6b6b76; cursor: pointer; }
+.kpopup .popup .name { padding-right: 18px; }
+
+#toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 2000;
+}
+
+@media (max-width: 720px) {
+  main { flex-direction: column; }
+  #side { width: 100%; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #16161a; --panel: #1e1e23; --text: #ececf1; --muted: #9a9aa6; --line: #2e2e36; }
+}

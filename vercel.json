@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "data/{dongs.geojson,areas.json,stores.json}",
+      "maxDuration": 30
+    }
+  }
+}
