@@ -23,11 +23,39 @@ function polygonsLatLng(geojson) {
   return out;
 }
 
-// 입체 물방울 핀 — 색은 가게 종류(식당 빨강·카페 초록·주점 노랑·기타 파랑),
-// 비플페이 가능은 형광 테두리, 불가능은 회색으로 표시한다
-const PIN = { w: 26, h: 34, tipY: 31 };
-const pinHtml = (kind, status) =>
-  `<div class="pin kind-${kind || 'food'} st-${status || 'none'}"><span class="pin-shadow"></span><span class="pin-head"><span class="pin-dot"></span></span></div>`;
+// 평면 핀 — 색은 가게 종류(식당 빨강·카페 초록·주점 노랑·기타 파랑),
+// 비플페이 가능은 같은 계열 형광 테두리, 불가능은 회색. SVG 이미지라 수천 개도 가볍다
+const KIND_COLOR = {
+  food: { fill: '#ef4444', glow: '#ff2d55' },
+  cafe: { fill: '#10b981', glow: '#1dff8e' },
+  bar: { fill: '#f5c518', glow: '#ffe600' },
+  etc: { fill: '#3b82f6', glow: '#2ea8ff' },
+};
+const NO_COLOR = '#9ca3af';
+// 그림 크기 36×44, 핀 끝은 (18, 39)
+const PIN = { w: 36, h: 44, tipX: 18, tipY: 39 };
+const PIN_PATH = 'M18 5C11.4 5 6 10.2 6 16.6 6 25.2 18 39 18 39S30 25.2 30 16.6C30 10.2 24.6 5 18 5Z';
+const pinCache = new Map();
+function pinUrl(kind, status) {
+  const key = `${kind}:${status}`;
+  if (!pinCache.has(key)) {
+    const c = KIND_COLOR[kind] ?? KIND_COLOR.food;
+    const fill = status === 'no' ? NO_COLOR : c.fill;
+    const glow =
+      status === 'yes'
+        ? `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+           <path d="${PIN_PATH}" fill="none" stroke="${c.glow}" stroke-width="6" filter="url(#g)"/>
+           <path d="${PIN_PATH}" fill="none" stroke="${c.glow}" stroke-width="4"/>`
+        : '';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PIN.w}" height="${PIN.h}" viewBox="0 0 ${PIN.w} ${PIN.h}">${glow}
+      <path d="${PIN_PATH}" fill="${fill}" stroke="#fff" stroke-width="2"/>
+      <circle cx="18" cy="16.6" r="4.6" fill="#fff"/></svg>`;
+    pinCache.set(key, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  }
+  return pinCache.get(key);
+}
+// 멀리서 볼 때 묶음 원 크기 (가게 수 기준)
+const clusterSize = (n) => (n < 20 ? 38 : n < 100 ? 46 : 54);
 
 // ---------- 지도 어댑터: 카카오 지도 / Leaflet(OSM) 공통 인터페이스 ----------
 
@@ -42,7 +70,18 @@ function leafletMap() {
   map.on('popupclose', () => (state.popupFor = null));
 
   const pinIcon = (p, status) =>
-    L.divIcon({ className: 'pin-wrap', html: pinHtml(p.kind, status), iconSize: [PIN.w, PIN.h], iconAnchor: [PIN.w / 2, PIN.tipY] });
+    L.icon({ iconUrl: pinUrl(p.kind, status), iconSize: [PIN.w, PIN.h], iconAnchor: [PIN.tipX, PIN.tipY] });
+  // 멀리서는 원과 숫자로 묶고, 충분히 확대하면 낱개 핀
+  const cluster = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    disableClusteringAtZoom: 18,
+    maxClusterRadius: 50,
+    iconCreateFunction: (c) => {
+      const n = c.getChildCount();
+      const size = clusterSize(n);
+      return L.divIcon({ html: `<div class="cluster">${n}</div>`, className: '', iconSize: [size, size] });
+    },
+  }).addTo(map);
   let areaLayers = [];
   const clearArea = () => {
     for (const l of areaLayers) l.remove();
@@ -71,16 +110,19 @@ function leafletMap() {
       m.bindTooltip(p.name, { direction: 'top', offset: [0, -10] });
       m.on('click', onClick);
       return {
+        raw: m,
         setStatus(s) {
           m.setIcon(pinIcon(p, s));
           m.setZIndexOffset(s === 'yes' ? 1000 : 0);
         },
-        setVisible: (v) => (v ? m.addTo(map) : m.remove()),
-        remove: () => m.remove(),
       };
     },
+    showMarkers(raws) {
+      cluster.clearLayers();
+      cluster.addLayers(raws);
+    },
     openPopup(p, el) {
-      L.popup({ minWidth: 220, offset: [0, -PIN.tipY + 4] }).setLatLng([p.lat, p.lng]).setContent(el).openOn(map);
+      L.popup({ minWidth: 220, offset: [0, -PIN.tipY + 8] }).setLatLng([p.lat, p.lng]).setContent(el).openOn(map);
       state.popupFor = p.id;
     },
     focus(p) {
@@ -102,6 +144,29 @@ function kakaoMap() {
     state.popupFor = null;
   };
   k.event.addListener(map, 'click', closePopup);
+
+  // 멀리서(레벨 4 이상)는 원과 숫자로 묶고, 가까이서는 낱개 핀
+  const clusterStyle = (size) => ({
+    width: `${size}px`,
+    height: `${size}px`,
+    lineHeight: `${size - 4}px`,
+    borderRadius: '50%',
+    textAlign: 'center',
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: '14px',
+    background: 'rgba(99, 102, 241, 0.82)',
+    border: '2px solid rgba(255, 255, 255, 0.85)',
+    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+  });
+  const clusterer = new k.MarkerClusterer({
+    map,
+    averageCenter: true,
+    minLevel: 4,
+    gridSize: 60,
+    calculator: [20, 100],
+    styles: [clusterStyle(clusterSize(1)), clusterStyle(clusterSize(20)), clusterStyle(clusterSize(100))],
+  });
 
   const clearArea = () => {
     for (const s of areaShapes) s.setMap(null);
@@ -145,18 +210,21 @@ function kakaoMap() {
       zoomInto(bounds);
     },
     createMarker(p, onClick) {
-      const el = document.createElement('div');
-      el.className = 'pin-wrap';
-      el.title = p.name;
-      el.onclick = onClick;
       // 핀 끝(아래 꼭짓점)이 가게 위치에 오도록
-      const ov = new k.CustomOverlay({ position: new k.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: PIN.tipY / PIN.h, clickable: true });
-      const setStatus = (s) => {
-        el.innerHTML = pinHtml(p.kind, s);
-        ov.setZIndex(s === 'yes' ? 3 : 1);
+      const image = (s) => new k.MarkerImage(pinUrl(p.kind, s), new k.Size(PIN.w, PIN.h), { offset: new k.Point(PIN.tipX, PIN.tipY) });
+      const m = new k.Marker({ position: new k.LatLng(p.lat, p.lng), image: image(p.status), title: p.name, zIndex: p.status === 'yes' ? 3 : 1 });
+      k.event.addListener(m, 'click', onClick);
+      return {
+        raw: m,
+        setStatus(s) {
+          m.setImage(image(s));
+          m.setZIndex(s === 'yes' ? 3 : 1);
+        },
       };
-      setStatus(p.status);
-      return { setStatus, setVisible: (v) => ov.setMap(v ? map : null), remove: () => ov.setMap(null) };
+    },
+    showMarkers(raws) {
+      clusterer.clear();
+      clusterer.addMarkers(raws);
     },
     openPopup(p, el) {
       closePopup();
@@ -192,7 +260,7 @@ function loadScript(src) {
 async function initMap(kakaoJsKey) {
   if (kakaoJsKey) {
     try {
-      await loadScript(`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(kakaoJsKey)}&autoload=false`);
+      await loadScript(`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(kakaoJsKey)}&libraries=clusterer&autoload=false`);
       if (!window.kakao?.maps) throw new Error('카카오 SDK 초기화 실패');
       await new Promise((resolve) => kakao.maps.load(resolve));
       return kakaoMap();
@@ -322,11 +390,8 @@ function render() {
   const where = state.area.matched === 'store' ? '가게 이름 검색' : `구획: ${state.area.dongs.join(', ')}`;
   $('#summary-dongs').textContent = `${where} · 출처: ${state.sourceName}`;
 
-  // 핀은 처음 보여줄 때 만든다 (수천 곳을 한 번에 만들면 느림)
-  for (const p of state.places) {
-    if (visible(p)) markerOf(p).setVisible(true);
-    else state.markers.get(p.id)?.setVisible(false);
-  }
+  // 핀은 처음 보여줄 때 만들고, 지금 필터에 맞는 핀만 지도(클러스터)에 올린다
+  mapApi.showMarkers(state.places.filter(visible).map((p) => markerOf(p).raw));
 
   // 목록은 앞부분만 그리고 '더 보기'로 늘린다
   const list = $('#list');
@@ -336,6 +401,7 @@ function render() {
     const li = document.createElement('li');
     li.innerHTML = '<span class="dot"></span><div><div class="n"></div><div class="c"></div></div>';
     li.querySelector('.dot').dataset.s = p.status || 'none';
+    li.querySelector('.dot').dataset.k = p.kind || 'food';
     li.querySelector('.n').textContent = p.name;
     li.querySelector('.c').textContent = p.category || '';
     li.onclick = () => {
@@ -399,7 +465,7 @@ async function search(q) {
     return;
   }
 
-  for (const m of state.markers.values()) m.remove();
+  mapApi.showMarkers([]);
   state.markers.clear();
 
   state.area = data.area;
