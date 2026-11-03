@@ -1,5 +1,5 @@
 import { adminArea, areaFromDongs, candidates, dongOf, exactArea, geocodeArea, looseArea } from '../lib/areas.js';
-import { allStores, storesIn } from '../lib/stores.js';
+import { allStores, indexSourceName, storesIn } from '../lib/stores.js';
 import { agentEnabled, interpret } from '../lib/agent.js';
 import { statusesIn } from '../lib/status.js';
 import { SOURCE_NAME } from '../lib/env.js';
@@ -107,7 +107,7 @@ async function search(request) {
 
   return Response.json({
     query: q,
-    sourceName: SOURCE_NAME,
+    sourceName: indexSourceName() ?? SOURCE_NAME,
     area,
     // 가게가 하나만 나오면 지도에서 바로 그 가게를 열어준다
     focusId: matched.length === 1 ? matched[0].id : null,
