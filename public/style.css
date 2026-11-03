@@ -227,11 +227,12 @@ main { position: relative; height: 100%; overflow: hidden; }
 #list::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.35); border-radius: 8px; }
 
 /* 목록 점: 지도 핀과 같은 종류 색, 가능은 형광 테두리, 불가능은 회색 */
-.dot { --c: #ef4444; --g: #ff2d55; flex: none; width: 11px; height: 11px; border-radius: 50%; margin-top: 4px; background: var(--c); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
-.dot[data-k="cafe"] { --c: #10b981; --g: #1dff8e; }
-.dot[data-k="bar"] { --c: #f5c518; --g: #ffe600; }
-.dot[data-k="etc"] { --c: #3b82f6; --g: #2ea8ff; }
-.dot[data-s="yes"] { box-shadow: 0 0 0 2px var(--g), 0 0 8px 2px var(--g); }
+.dot { --c: #ef4444; flex: none; width: 11px; height: 11px; border-radius: 50%; margin-top: 4px; background: var(--c); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+.dot[data-k="cafe"] { --c: #10b981; }
+.dot[data-k="bar"] { --c: #f5c518; }
+.dot[data-k="etc"] { --c: #3b82f6; }
+/* 비플페이 가능: 지도 핀과 같은 밝은 연둣빛 형광 */
+.dot[data-s="yes"] { box-shadow: 0 0 0 2.5px #b6ff2e, 0 0 10px 5px rgba(182, 255, 46, 0.75); }
 .dot[data-s="no"] { background: var(--no); }
 
 /* ---------- 지도 묶음 원 (OSM 지도용, 카카오는 app.js에서 같은 모양으로 지정) ---------- */

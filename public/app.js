@@ -24,32 +24,34 @@ function polygonsLatLng(geojson) {
 }
 
 // 평면 핀 — 색은 가게 종류(식당 빨강·카페 초록·주점 노랑·기타 파랑),
-// 비플페이 가능은 같은 계열 형광 테두리, 불가능은 회색. SVG 이미지라 수천 개도 가볍다
-const KIND_COLOR = {
-  food: { fill: '#ef4444', glow: '#ff2d55' },
-  cafe: { fill: '#10b981', glow: '#1dff8e' },
-  bar: { fill: '#f5c518', glow: '#ffe600' },
-  etc: { fill: '#3b82f6', glow: '#2ea8ff' },
-};
+// 비플페이 가능은 밝은 연둣빛 형광, 불가능은 회색. SVG 이미지라 수천 개도 가볍다
+const KIND_COLOR = { food: '#ef4444', cafe: '#10b981', bar: '#f5c518', etc: '#3b82f6' };
 const NO_COLOR = '#9ca3af';
-// 그림 크기 36×44, 핀 끝은 (18, 39)
+const NEON = '#b6ff2e';
+// 핀 그림 36×44, 끝은 (18, 39). 형광 핀(가능)만 빛이 퍼질 여백 14px를 더 둔다
+// — 모든 핀에 여백을 주면 클릭 영역이 커져 몰린 곳에서 옆 핀이 눌린다
 const PIN = { w: 36, h: 44, tipX: 18, tipY: 39 };
+const GLOW_PAD = 14;
+const pinBox = (status) => {
+  const pad = status === 'yes' ? GLOW_PAD : 0;
+  return { pad, w: PIN.w + pad * 2, h: PIN.h + pad * 2, tipX: PIN.tipX + pad, tipY: PIN.tipY + pad };
+};
 const PIN_PATH = 'M18 5C11.4 5 6 10.2 6 16.6 6 25.2 18 39 18 39S30 25.2 30 16.6C30 10.2 24.6 5 18 5Z';
 const pinCache = new Map();
 function pinUrl(kind, status) {
   const key = `${kind}:${status}`;
   if (!pinCache.has(key)) {
-    const c = KIND_COLOR[kind] ?? KIND_COLOR.food;
-    const fill = status === 'no' ? NO_COLOR : c.fill;
+    const fill = status === 'no' ? NO_COLOR : (KIND_COLOR[kind] ?? KIND_COLOR.food);
     const glow =
       status === 'yes'
-        ? `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
-           <path d="${PIN_PATH}" fill="none" stroke="${c.glow}" stroke-width="6" filter="url(#g)"/>
-           <path d="${PIN_PATH}" fill="none" stroke="${c.glow}" stroke-width="4"/>`
+        ? `<defs><filter id="g" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="6.5"/></filter></defs>
+           <path d="${PIN_PATH}" fill="${NEON}" stroke="${NEON}" stroke-width="14" filter="url(#g)"/>
+           <path d="${PIN_PATH}" fill="none" stroke="${NEON}" stroke-width="5"/>`
         : '';
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PIN.w}" height="${PIN.h}" viewBox="0 0 ${PIN.w} ${PIN.h}">${glow}
+    const { pad, w, h } = pinBox(status);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g transform="translate(${pad} ${pad})">${glow}
       <path d="${PIN_PATH}" fill="${fill}" stroke="#fff" stroke-width="2"/>
-      <circle cx="18" cy="16.6" r="4.6" fill="#fff"/></svg>`;
+      <circle cx="18" cy="16.6" r="4.6" fill="#fff"/></g></svg>`;
     pinCache.set(key, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
   }
   return pinCache.get(key);
@@ -70,7 +72,7 @@ function leafletMap() {
   map.on('popupclose', () => (state.popupFor = null));
 
   const pinIcon = (p, status) =>
-    L.icon({ iconUrl: pinUrl(p.kind, status), iconSize: [PIN.w, PIN.h], iconAnchor: [PIN.tipX, PIN.tipY] });
+    L.icon({ iconUrl: pinUrl(p.kind, status), iconSize: [pinBox(status).w, pinBox(status).h], iconAnchor: [pinBox(status).tipX, pinBox(status).tipY] });
   // 멀리서는 원과 숫자로 묶고, 충분히 확대하면 낱개 핀
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
@@ -211,7 +213,10 @@ function kakaoMap() {
     },
     createMarker(p, onClick) {
       // 핀 끝(아래 꼭짓점)이 가게 위치에 오도록
-      const image = (s) => new k.MarkerImage(pinUrl(p.kind, s), new k.Size(PIN.w, PIN.h), { offset: new k.Point(PIN.tipX, PIN.tipY) });
+      const image = (s) => {
+        const b = pinBox(s);
+        return new k.MarkerImage(pinUrl(p.kind, s), new k.Size(b.w, b.h), { offset: new k.Point(b.tipX, b.tipY) });
+      };
       const m = new k.Marker({ position: new k.LatLng(p.lat, p.lng), image: image(p.status), title: p.name, zIndex: p.status === 'yes' ? 3 : 1 });
       k.event.addListener(m, 'click', onClick);
       return {
