@@ -124,3 +124,4 @@ main { height: 100%; display: flex; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #16161a; --panel: #1e1e23; --text: #ececf1; --muted: #9a9aa6; --line: #2e2e36; }
 }
+#list li.more { justify-content: center; color: var(--accent); font-size: 13px; font-weight: 600; }

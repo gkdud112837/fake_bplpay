@@ -239,7 +239,7 @@ function applyStatus(id, status) {
   const p = state.byId.get(id);
   if (!p || p.status === status) return;
   p.status = status;
-  state.markers.get(id).setStatus(status);
+  state.markers.get(id)?.setStatus(status);
   if (state.popupFor === id) mapApi.openPopup(p, popupContent(p));
   render();
 }
@@ -314,13 +314,17 @@ function render() {
   const where = state.area.matched === 'store' ? '가게 이름 검색' : `구획: ${state.area.dongs.join(', ')}`;
   $('#summary-dongs').textContent = `${where} · 출처: ${state.sourceName}`;
 
-  const list = $('#list');
-  list.innerHTML = '';
+  // 핀은 처음 보여줄 때 만든다 (수천 곳을 한 번에 만들면 느림)
   for (const p of state.places) {
-    const show = visible(p);
-    state.markers.get(p.id).setVisible(show);
-    if (!show) continue;
+    if (visible(p)) markerOf(p).setVisible(true);
+    else state.markers.get(p.id)?.setVisible(false);
+  }
 
+  // 목록은 앞부분만 그리고 '더 보기'로 늘린다
+  const list = $('#list');
+  const items = state.places.filter(visible);
+  const frag = document.createDocumentFragment();
+  for (const p of items.slice(0, state.listLimit)) {
     const li = document.createElement('li');
     li.innerHTML = '<span class="dot"></span><div><div class="n"></div><div class="c"></div></div>';
     li.querySelector('.dot').dataset.s = p.status || 'none';
@@ -330,8 +334,31 @@ function render() {
       mapApi.focus(p);
       mapApi.openPopup(p, popupContent(p));
     };
-    list.append(li);
+    frag.append(li);
   }
+  if (items.length > state.listLimit) {
+    const more = document.createElement('li');
+    more.className = 'more';
+    more.textContent = `더 보기 (${items.length - state.listLimit}곳 남음)`;
+    more.onclick = () => {
+      state.listLimit += LIST_PAGE;
+      render();
+    };
+    frag.append(more);
+  }
+  list.replaceChildren(frag);
+}
+
+const LIST_PAGE = 200;
+state.listLimit = LIST_PAGE;
+
+function markerOf(p) {
+  let m = state.markers.get(p.id);
+  if (!m) {
+    m = mapApi.createMarker(p, () => mapApi.openPopup(p, popupContent(p)));
+    state.markers.set(p.id, m);
+  }
+  return m;
 }
 
 function setReply(text) {
@@ -351,7 +378,12 @@ async function search(q) {
   let data;
   try {
     const res = await fetch(`/api/search?${params}`);
-    data = await res.json();
+    const text = await res.text();
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`서버 응답 오류 (${res.status}). 잠시 후 다시 시도해 주세요.`);
+    }
     if (!res.ok) throw new Error(data.error);
   } catch (err) {
     setReply('');
@@ -374,9 +406,7 @@ async function search(q) {
   // 가게 이름으로 찾았으면 구획 없이 가게들만 보여준다
   if (data.area.matched === 'store') mapApi.showPoints(state.places);
   else mapApi.setArea(data.area);
-  for (const p of state.places) {
-    state.markers.set(p.id, mapApi.createMarker(p, () => mapApi.openPopup(p, popupContent(p))));
-  }
+  state.listLimit = LIST_PAGE;
   render();
   if (!state.places.length) toast('이 구획에서 가게를 찾지 못했습니다.');
 
