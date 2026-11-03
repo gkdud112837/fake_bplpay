@@ -23,6 +23,12 @@ function polygonsLatLng(geojson) {
   return out;
 }
 
+// 입체 물방울 핀 — 색은 가게 종류(식당 빨강·카페 초록·주점 노랑·기타 파랑),
+// 비플페이 가능은 형광 테두리, 불가능은 회색으로 표시한다
+const PIN = { w: 26, h: 34, tipY: 31 };
+const pinHtml = (kind, status) =>
+  `<div class="pin kind-${kind || 'food'} st-${status || 'none'}"><span class="pin-shadow"></span><span class="pin-head"><span class="pin-dot"></span></span></div>`;
+
 // ---------- 지도 어댑터: 카카오 지도 / Leaflet(OSM) 공통 인터페이스 ----------
 
 function leafletMap() {
@@ -35,8 +41,8 @@ function leafletMap() {
   }).addTo(map);
   map.on('popupclose', () => (state.popupFor = null));
 
-  const pinIcon = (status) =>
-    L.divIcon({ className: 'pin-wrap', html: `<div class="pin pin-${status || 'none'}"></div>`, iconSize: [24, 24], iconAnchor: [12, 12] });
+  const pinIcon = (p, status) =>
+    L.divIcon({ className: 'pin-wrap', html: pinHtml(p.kind, status), iconSize: [PIN.w, PIN.h], iconAnchor: [PIN.w / 2, PIN.tipY] });
   let areaLayers = [];
   const clearArea = () => {
     for (const l of areaLayers) l.remove();
@@ -61,12 +67,12 @@ function leafletMap() {
       map.flyToBounds(L.latLngBounds(places.map((p) => [p.lat, p.lng])), { padding: [48, 48], maxZoom: 17, duration: 0.9 });
     },
     createMarker(p, onClick) {
-      const m = L.marker([p.lat, p.lng], { icon: pinIcon(p.status), zIndexOffset: p.status === 'yes' ? 1000 : 0 });
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon(p, p.status), zIndexOffset: p.status === 'yes' ? 1000 : 0 });
       m.bindTooltip(p.name, { direction: 'top', offset: [0, -10] });
       m.on('click', onClick);
       return {
         setStatus(s) {
-          m.setIcon(pinIcon(s));
+          m.setIcon(pinIcon(p, s));
           m.setZIndexOffset(s === 'yes' ? 1000 : 0);
         },
         setVisible: (v) => (v ? m.addTo(map) : m.remove()),
@@ -74,7 +80,7 @@ function leafletMap() {
       };
     },
     openPopup(p, el) {
-      L.popup({ minWidth: 220, offset: [0, -8] }).setLatLng([p.lat, p.lng]).setContent(el).openOn(map);
+      L.popup({ minWidth: 220, offset: [0, -PIN.tipY + 4] }).setLatLng([p.lat, p.lng]).setContent(el).openOn(map);
       state.popupFor = p.id;
     },
     focus(p) {
@@ -142,11 +148,11 @@ function kakaoMap() {
       const el = document.createElement('div');
       el.className = 'pin-wrap';
       el.title = p.name;
-      el.innerHTML = '<div class="pin"></div>';
       el.onclick = onClick;
-      const ov = new k.CustomOverlay({ position: new k.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: 0.5, clickable: true });
+      // 핀 끝(아래 꼭짓점)이 가게 위치에 오도록
+      const ov = new k.CustomOverlay({ position: new k.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: PIN.tipY / PIN.h, clickable: true });
       const setStatus = (s) => {
-        el.firstChild.className = `pin pin-${s || 'none'}`;
+        el.innerHTML = pinHtml(p.kind, s);
         ov.setZIndex(s === 'yes' ? 3 : 1);
       };
       setStatus(p.status);

@@ -230,24 +230,84 @@ main { position: relative; height: 100%; overflow: hidden; }
 .dot[data-s="yes"] { background: var(--neon); box-shadow: 0 0 8px var(--neon); }
 .dot[data-s="no"] { background: var(--no); box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.2); }
 
-/* ---------- 지도 핀 ---------- */
-.pin-wrap { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.pin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35); transition: transform 0.15s; }
-.pin-wrap:hover .pin { transform: scale(1.25); }
-.pin-none { background: var(--none); }
-.pin-no { background: var(--no); border-color: #e5e7eb; }
-.pin-yes {
-  width: 20px;
-  height: 20px;
+/* ---------- 지도 핀: 입체 물방울 ---------- */
+.pin-wrap { width: 26px; height: 34px; cursor: pointer; }
+.pin { position: relative; width: 26px; height: 34px; transition: transform 0.18s ease; }
+.pin-wrap:hover .pin { transform: translateY(-4px) scale(1.08); }
+
+/* 정사각형의 한 모서리만 뾰족하게 두고 -45° 돌리면 아래를 향한 물방울이 된다 */
+.pin-head {
+  position: absolute;
+  left: 2px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  /* 핀을 -45° 돌렸으므로 225deg가 화면상 위(밝음)→아래(어두움) */
+  background: linear-gradient(225deg, var(--pin-light), var(--pin-dark));
+  box-shadow:
+    inset -3px -3px 6px rgba(0, 0, 0, 0.22),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.5),
+    0 3px 5px rgba(15, 23, 42, 0.16);
+}
+/* 윗부분 광택 */
+.pin-head::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 9px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+  transform: rotate(45deg);
+}
+/* 가운데 흰 구멍 */
+.pin-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
   background: #fff;
-  border: 4px solid var(--neon);
-  box-shadow: 0 0 6px 2px var(--neon), 0 0 16px 4px rgba(57, 255, 20, 0.6);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.3);
+}
+/* 바닥 그림자 */
+.pin-shadow {
+  position: absolute;
+  left: 7px;
+  top: 29px;
+  width: 12px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.18);
+  filter: blur(1.5px);
+}
+
+/* --pin-glow: 비플페이 가능일 때 빛나는 형광색 (종류 색과 같은 계열) */
+.kind-food { --pin-light: #ff8a8a; --pin-dark: #e11d48; --pin-glow: #ff2d55; }
+.kind-cafe { --pin-light: #6ee7a8; --pin-dark: #059669; --pin-glow: #1dff8e; }
+.kind-bar  { --pin-light: #fff07a; --pin-dark: #eab308; --pin-glow: #ffe600; }
+.kind-etc  { --pin-light: #7cc4ff; --pin-dark: #2563eb; --pin-glow: #2ea8ff; }
+
+/* 비플페이 가능: 종류 색 형광 테두리가 빛난다 */
+.st-yes .pin-head {
+  box-shadow:
+    0 0 0 3px var(--pin-glow),
+    0 0 12px 4px var(--pin-glow),
+    inset -3px -3px 6px rgba(0, 0, 0, 0.22),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.5);
   animation: glow 1.4s ease-in-out infinite alternate;
 }
 @keyframes glow {
-  from { box-shadow: 0 0 4px 1px var(--neon), 0 0 10px 2px rgba(57, 255, 20, 0.5); }
-  to { box-shadow: 0 0 8px 3px var(--neon), 0 0 20px 6px rgba(57, 255, 20, 0.7); }
+  from { filter: drop-shadow(0 0 2px var(--pin-glow)); }
+  to { filter: drop-shadow(0 0 8px var(--pin-glow)); }
 }
+/* 비플페이 불가능: 회색 */
+.st-no .pin-head { filter: grayscale(1) brightness(1.08); opacity: 0.8; }
 
 /* ---------- 팝업 (카카오·Leaflet 공통 유리 카드) ---------- */
 .kpopup,
@@ -262,7 +322,7 @@ main { position: relative; height: 100%; overflow: hidden; }
 }
 .leaflet-popup-tip { background: var(--glass-strong) !important; }
 .leaflet-popup-content { margin: 14px 16px; }
-.kpopup { position: relative; width: 260px; margin-bottom: 18px; padding: 16px 16px 12px; }
+.kpopup { position: relative; width: 260px; margin-bottom: 40px; padding: 16px 16px 12px; }
 .kpopup::after {
   content: '';
   position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
