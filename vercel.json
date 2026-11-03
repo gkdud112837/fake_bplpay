@@ -3,8 +3,11 @@
   "outputDirectory": "public",
   "functions": {
     "api/*.js": {
-      "includeFiles": "data/{dongs.geojson,areas.json,stores.json}",
+      "includeFiles": "data/**",
       "maxDuration": 30
     }
-  }
+  },
+  "regions": [
+    "icn1"
+  ]
 }

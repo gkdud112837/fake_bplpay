@@ -1,7 +1,6 @@
 import { adminArea, areaFromDongs, candidates, dongOf, exactArea, geocodeArea, looseArea } from '../lib/areas.js';
-import { allStores } from '../lib/stores.js';
+import { allStores, storesIn } from '../lib/stores.js';
 import { agentEnabled, interpret } from '../lib/agent.js';
-import { placesIn } from '../lib/places.js';
 import { statusesIn } from '../lib/status.js';
 import { SOURCE_NAME } from '../lib/env.js';
 
@@ -37,6 +36,16 @@ function resolveName(text, all) {
 }
 
 export async function GET(request) {
+  try {
+    return await search(request);
+  } catch (err) {
+    // 어떤 오류든 JSON으로 돌려줘야 화면에서 메시지를 보여줄 수 있다
+    console.error('search error:', err);
+    return error(500, '검색 중 오류가 났습니다. 잠시 후 다시 시도해 주세요.');
+  }
+}
+
+async function search(request) {
   const params = new URL(request.url).searchParams;
   const q = (params.get('q') || '').trim().slice(0, 200);
   if (!q) return error(400, '동네, 지명, 가게 이름이나 찾고 싶은 것을 입력하세요.');
@@ -77,7 +86,7 @@ export async function GET(request) {
 
   const { area } = found;
   const [places, statuses] = await Promise.all([
-    found.stores ?? placesIn(area),
+    found.stores ?? storesIn(area),
     // 상태 DB가 잠시 안 돼도 가게 검색은 보여준다
     statusesIn(area.bbox).catch((err) => {
       console.error('status load error:', err.message);
